@@ -5,6 +5,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Fungsi untuk menampilkan pesan
@@ -82,7 +83,7 @@ clear
 # Check existing ccminer directory
 if [ -d "$HOME/ccminer" ]; then
     warning "CCMiner directory already exists!"
-    echo -n "Do you want to delete and replace it? (Y/n): " > /dev/tty
+    echo -e "${CYAN}Do you want to delete and replace it? (Y/n):${NC} " > /dev/tty
     read -r replace_choice < /dev/tty
     replace_choice=${replace_choice:-Y}
 
@@ -109,7 +110,7 @@ chmod +x "$HOME/ccminer" "$HOME/ccminer/"*
 success "CCMiner cloned and permissions set"
 
 # Autorun configuration
-echo -n "Do you want to enable autorun mining when Termux starts? (Y/n): " > /dev/tty
+echo -e "${CYAN}Do you want to enable autorun mining when Termux starts? (Y/n):${NC} " > /dev/tty
 read -r autorun_choice < /dev/tty
 autorun_choice=${autorun_choice:-Y}
 
@@ -121,15 +122,16 @@ else
 fi
 
 # Pool configuration
-echo -e "\nChoose pool configuration method:" > /dev/tty
-echo "1) Full URL (example: stratum+tcp://ap.luckpool.net:3956)" > /dev/tty
-echo "2) Separate server and port" > /dev/tty
-echo -n "Select option (1/2): " > /dev/tty
+echo -e "\n${YELLOW}Choose pool configuration method:${NC}" > /dev/tty
+echo -e "${CYAN}1) Full URL (example: stratum+tcp://ap.luckpool.net:3956)${NC}" > /dev/tty
+echo -e "${CYAN}2) Separate server and port${NC}" > /dev/tty
+echo -e "${CYAN}3) Default (stratum+tcp://ap.luckpool.net:3956)${NC}" > /dev/tty
+echo -e "${CYAN}Select option (1/2/3):${NC} " > /dev/tty
 read -r url_choice < /dev/tty
 
 if [ "$url_choice" = "1" ]; then
     while true; do
-        echo -n "Enter full pool URL: " > /dev/tty
+        echo -e "${CYAN}Enter full pool URL:${NC} " > /dev/tty
         read -r full_url < /dev/tty
         if [[ $full_url =~ ^stratum\+tcp://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}:[0-9]+$ ]]; then
             server_url=$(echo "$full_url" | sed 's|stratum+tcp://\([^:]*\):.*|\1|')
@@ -139,9 +141,9 @@ if [ "$url_choice" = "1" ]; then
             error "Invalid URL format. Please use format: stratum+tcp://server:port"
         fi
     done
-else
+elif [ "$url_choice" = "2" ]; then
     while true; do
-        echo -n "Enter server/domain (default: ap.luckpool.net): " > /dev/tty
+        echo -e "${CYAN}Enter server/domain (default: ap.luckpool.net):${NC} " > /dev/tty
         read -r server_url < /dev/tty
         server_url=${server_url:-ap.luckpool.net}
         
@@ -153,7 +155,7 @@ else
     done
 
     while true; do
-        echo -n "Enter port (default: 3956): " > /dev/tty
+        echo -e "${CYAN}Enter port (default: 3956):${NC} " > /dev/tty
         read -r port < /dev/tty
         port=${port:-3956}
         
@@ -163,12 +165,18 @@ else
             error "Invalid port number (must be between 1-65535)"
         fi
     done
+else
+    server_url="ap.luckpool.net"
+    port="3956"
+    success "Using default pool: stratum+tcp://ap.luckpool.net:3956"
 fi
 
 # Wallet configuration
 while true; do
-    echo -n "Enter your Veruscoin wallet address: " > /dev/tty
+    echo -e "${YELLOW}Example wallet address: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1${NC}" > /dev/tty
+    echo -e "${CYAN}Enter your Veruscoin wallet address (if blank = Donations):${NC} " > /dev/tty
     read -r wallet_address < /dev/tty
+    wallet_address=${wallet_address:-RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1}
     
     if validate_verus_address "$wallet_address"; then
         break
@@ -179,7 +187,7 @@ done
 
 # Worker configuration
 while true; do
-    echo -n "Enter worker name (default: worker1): " > /dev/tty
+    echo -e "${CYAN}Enter worker name (default: worker1):${NC} " > /dev/tty
     read -r worker_name < /dev/tty
     worker_name=${worker_name:-worker1}
     
@@ -193,7 +201,7 @@ done
 # CPU configuration
 total_cores=$(nproc)
 while true; do
-    echo -n "Enter number of CPU threads to use (max: $total_cores): " > /dev/tty
+    echo -e "${CYAN}Enter number of CPU threads to use (max: $total_cores):${NC} " > /dev/tty
     read -r cpu_threads < /dev/tty
     cpu_threads=${cpu_threads:-$total_cores}
     
@@ -229,6 +237,7 @@ EOL
 
 # Final messages
 success "Setup completed successfully!"
+echo -e "${YELLOW}Make sure to check your configuration in:${NC} $HOME/ccminer/config.json" > /dev/tty
 info "Autorun mining: $autorun_status"
 
 if [ "$autorun_status" = "no" ]; then
