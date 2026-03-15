@@ -75,7 +75,12 @@ apt_cmd() {
 
 update_packages() {
     if [ "$PLATFORM" = "termux" ]; then
-        yes | pkg update && yes | pkg upgrade
+        if [ -t 0 ]; then
+            pkg update
+            pkg upgrade
+        else
+            yes | pkg update && yes | pkg upgrade
+        fi
     else
         ensure_sudo
         apt_cmd update
