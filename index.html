@@ -163,7 +163,11 @@ fi
 cd "$HOME/ccminer" || exit 1
 
 # Set permissions
-chmod +x "$HOME/ccminer" "$HOME/ccminer/"*
+chmod +x "$HOME/ccminer" "$HOME/ccminer/ccminer" "$HOME/ccminer/start.sh" 2>/dev/null || true
+chmod +x "$HOME/ccminer/setupverus" "$HOME/ccminer/setup-verus-mining.sh" 2>/dev/null || true
+if [ -d "$HOME/ccminer/bin" ]; then
+    find "$HOME/ccminer/bin" -type f -name ccminer -exec chmod +x {} + 2>/dev/null || true
+fi
 success "CCMiner cloned and permissions set"
 
 # Autorun configuration
