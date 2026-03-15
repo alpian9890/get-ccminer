@@ -25,6 +25,62 @@ warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1" > /dev/tty
 }
 
+# Deteksi platform
+PLATFORM="linux"
+if [ -n "${TERMUX_VERSION:-}" ] || [ -d "/data/data/com.termux/files/usr" ]; then
+    PLATFORM="termux"
+elif [ -f /etc/os-release ] && grep -qiE 'ubuntu|debian' /etc/os-release; then
+    PLATFORM="ubuntu"
+fi
+
+if [ "$PLATFORM" = "termux" ]; then
+    BASHRC_FILE="/data/data/com.termux/files/usr/etc/bash.bashrc"
+else
+    BASHRC_FILE="$HOME/.bashrc"
+fi
+
+ensure_sudo() {
+    if [ "$(id -u)" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+        else
+            error "Perintah ini membutuhkan akses root. Jalankan sebagai root atau install sudo."
+            exit 1
+        fi
+    fi
+}
+
+apt_cmd() {
+    if ! command -v apt-get >/dev/null 2>&1; then
+        error "apt-get tidak ditemukan. Script ini fokus untuk Ubuntu/Debian."
+        exit 1
+    fi
+    if [ -n "$SUDO" ]; then
+        $SUDO env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+    else
+        env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+    fi
+}
+
+update_packages() {
+    if [ "$PLATFORM" = "termux" ]; then
+        yes | pkg update && pkg upgrade
+    else
+        ensure_sudo
+        apt_cmd update
+        apt_cmd upgrade -y
+    fi
+}
+
+install_packages() {
+    if [ "$PLATFORM" = "termux" ]; then
+        yes | pkg install libjansson wget nano git
+    else
+        ensure_sudo
+        apt_cmd install -y libjansson4 wget nano curl git
+    fi
+}
+
 # Fungsi validasi
 validate_verus_address() {
     local address=$1
@@ -59,10 +115,11 @@ trap 'error "Script interrupted by user"; exit 1' INT
 
 clear
 info "Starting setup..."
+info "Platform detected: $PLATFORM"
 
 # Update packages
 info "Updating packages..."
-if ! yes | pkg update && pkg upgrade && apt update && apt upgrade; then
+if ! update_packages; then
     error "Failed to update packages"
     exit 1
 fi
@@ -70,7 +127,7 @@ success "Packages updated successfully"
 
 # Install required packages
 info "Installing required packages..."
-if ! yes | pkg install libjansson wget nano git; then
+if ! install_packages; then
     error "Failed to install required packages"
     exit 1
 fi
@@ -110,12 +167,15 @@ chmod +x "$HOME/ccminer" "$HOME/ccminer/"*
 success "CCMiner cloned and permissions set"
 
 # Autorun configuration
-echo -e "${CYAN}Do you want to enable autorun mining when Termux starts? (Y/n):${NC} " > /dev/tty
+echo -e "${CYAN}Do you want to enable autorun mining when shell starts? (Y/n):${NC} " > /dev/tty
 read -r autorun_choice < /dev/tty
 autorun_choice=${autorun_choice:-Y}
 
 if [ "${autorun_choice^^}" = "Y" ]; then
-    echo "cd $HOME/ccminer/&&./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
+    autorun_cmd="cd $HOME/ccminer && ./start.sh"
+    if ! grep -Fq "$autorun_cmd" "$BASHRC_FILE" 2>/dev/null; then
+        echo "$autorun_cmd" >> "$BASHRC_FILE"
+    fi
     autorun_status="yes"
 else
     autorun_status="no"
