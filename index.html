@@ -239,11 +239,29 @@ else
     autorun_status="no"
 fi
 
+# Pool selection
+echo -e "\n${YELLOW}Choose pool:${NC}" > /dev/tty
+echo -e "${CYAN}1) Luckpool (ap.luckpool.net:3956)${NC}" > /dev/tty
+echo -e "${CYAN}2) Vipor (sg.vipor.net:5040)${NC}" > /dev/tty
+echo -e "${CYAN}Select pool (1/2):${NC} " > /dev/tty
+read -r pool_choice < /dev/tty
+pool_choice=${pool_choice:-1}
+
+if [ "$pool_choice" = "2" ]; then
+    server_url_default="sg.vipor.net"
+    port_default="5040"
+    pass_default=""
+else
+    server_url_default="ap.luckpool.net"
+    port_default="3956"
+    pass_default="x"
+fi
+
 # Pool configuration
 echo -e "\n${YELLOW}Choose pool configuration method:${NC}" > /dev/tty
-echo -e "${CYAN}1) Full URL (example: stratum+tcp://ap.luckpool.net:3956)${NC}" > /dev/tty
+echo -e "${CYAN}1) Full URL (example: stratum+tcp://${server_url_default}:${port_default})${NC}" > /dev/tty
 echo -e "${CYAN}2) Separate server and port${NC}" > /dev/tty
-echo -e "${CYAN}3) Default (stratum+tcp://ap.luckpool.net:3956)${NC}" > /dev/tty
+echo -e "${CYAN}3) Default (stratum+tcp://${server_url_default}:${port_default})${NC}" > /dev/tty
 echo -e "${CYAN}Select option (1/2/3):${NC} " > /dev/tty
 read -r url_choice < /dev/tty
 
@@ -261,9 +279,9 @@ if [ "$url_choice" = "1" ]; then
     done
 elif [ "$url_choice" = "2" ]; then
     while true; do
-        echo -e "${CYAN}Enter server/domain (default: ap.luckpool.net):${NC} " > /dev/tty
+        echo -e "${CYAN}Enter server/domain (default: ${server_url_default}):${NC} " > /dev/tty
         read -r server_url < /dev/tty
-        server_url=${server_url:-ap.luckpool.net}
+        server_url=${server_url:-$server_url_default}
         
         if validate_url "$server_url"; then
             break
@@ -273,9 +291,9 @@ elif [ "$url_choice" = "2" ]; then
     done
 
     while true; do
-        echo -e "${CYAN}Enter port (default: 3956):${NC} " > /dev/tty
+        echo -e "${CYAN}Enter port (default: ${port_default}):${NC} " > /dev/tty
         read -r port < /dev/tty
-        port=${port:-3956}
+        port=${port:-$port_default}
         
         if validate_port "$port"; then
             break
@@ -284,9 +302,9 @@ elif [ "$url_choice" = "2" ]; then
         fi
     done
 else
-    server_url="ap.luckpool.net"
-    port="3956"
-    success "Using default pool: stratum+tcp://ap.luckpool.net:3956"
+    server_url="$server_url_default"
+    port="$port_default"
+    success "Using default pool: stratum+tcp://${server_url}:${port}"
 fi
 
 # Wallet configuration
@@ -340,7 +358,7 @@ cat > config.json << EOL
             "timeout": 180,
             "disabled": 0,
             "user": "${wallet_address}.${worker_name}",
-            "pass": ""
+            "pass": "${pass_default}"
         }
     ],
     "algo": "verus",
